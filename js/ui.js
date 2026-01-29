@@ -12,6 +12,7 @@ class UIManager {
         
         // Menu elements
         this.playerNameInput = document.getElementById('player-name');
+        this.btnSolo = document.getElementById('btn-solo');
         this.btnQuickMatch = document.getElementById('btn-quick-match');
         this.btnPrivate = document.getElementById('btn-private');
         this.btnLeaderboard = document.getElementById('btn-leaderboard');
@@ -139,9 +140,19 @@ class UIManager {
             </div>
         `).join('');
         
-        // Only host can start
-        this.btnStartGame.disabled = !isHost || players.length < CONFIG.MIN_PLAYERS;
+        console.log('Lobby update - isHost:', isHost, 'players:', players.length);
+        
+        // Enable start for host with 1+ players (can test solo or wait for more)
+        const canStart = isHost && players.length >= 1;
+        this.btnStartGame.disabled = !canStart;
         this.maxPlayersSelect.disabled = !isHost;
+        
+        // Update button text
+        if (players.length < CONFIG.MIN_PLAYERS) {
+            this.btnStartGame.textContent = `WAITING (${players.length}/${CONFIG.MIN_PLAYERS})`;
+        } else {
+            this.btnStartGame.textContent = 'START GAME';
+        }
     }
     
     setupGameHUD(players, localPlayerId) {

@@ -26,6 +26,11 @@ const CONFIG = {
     // Terrain
     TERRAIN_COLOR: '#2a1a4a',
     
+    // CPU AI settings
+    CPU_AIM_VARIANCE: 8,        // degrees of random error
+    CPU_POWER_VARIANCE: 15,     // power random error
+    CPU_THINK_TIME: 1500,       // ms before CPU fires
+    
     // Player colors
     PLAYER_COLORS: [
         { name: 'Blue', hex: '#4a9eff', rgb: [74, 158, 255] },

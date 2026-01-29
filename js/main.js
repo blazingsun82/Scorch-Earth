@@ -45,6 +45,9 @@ class ScorchOnline {
     }
     
     bindEvents() {
+        // Solo vs CPU
+        this.ui.btnSolo.addEventListener('click', () => this.startSoloGame());
+        
         // Quick match
         this.ui.btnQuickMatch.addEventListener('click', () => this.quickMatch());
         
@@ -90,6 +93,23 @@ class ScorchOnline {
         this.game.onTurnChange = (turnIndex) => this.onTurnChange(turnIndex);
         this.game.onPlayerHit = (hitId, shooterId) => this.onPlayerHit(hitId, shooterId);
         this.game.onGameOver = (winnerId) => this.onGameOver(winnerId);
+    }
+    
+    // Start solo game vs CPU
+    startSoloGame() {
+        const name = this.ui.getPlayerName();
+        this.isSoloMode = true;
+        this.isHost = true;
+        
+        // Initialize game
+        this.game.resize();
+        this.game.initSoloGame(name, 1); // 1 CPU opponent
+        
+        this.ui.showScreen('game');
+        this.ui.setupGameHUD(this.game.players, 'human');
+        
+        this.myKills = 0;
+        this.updateTurnUI();
     }
     
     async quickMatch() {
@@ -158,20 +178,33 @@ class ScorchOnline {
     }
     
     async startGame() {
-        if (!this.isHost) return;
+        console.log('Start game clicked, isHost:', this.isHost);
+        
+        if (!this.isHost) {
+            console.log('Not host, cannot start');
+            return;
+        }
+        
+        if (!this.supabase.currentGame) {
+            console.log('No current game');
+            return;
+        }
         
         const players = await this.supabase.getGamePlayers(this.supabase.currentGame.id);
+        console.log('Players in game:', players.length, players);
         
-        if (players.length < CONFIG.MIN_PLAYERS) {
-            alert('Need at least 2 players to start!');
+        if (players.length < 1) {
+            alert('No players found!');
             return;
         }
         
         // Generate terrain seed
         const terrainSeed = Math.floor(Math.random() * 100000);
+        console.log('Terrain seed:', terrainSeed);
         
         // Generate turn order (shuffle player IDs)
         const turnOrder = players.map(p => p.player_id).sort(() => Math.random() - 0.5);
+        console.log('Turn order:', turnOrder);
         
         // Start game
         await this.supabase.startGame(terrainSeed, turnOrder);
@@ -268,39 +301,56 @@ class ScorchOnline {
     }
     
     onPlayerHit(hitPlayerId, shooterId) {
-        // Broadcast hit
-        this.supabase.broadcastHit(hitPlayerId, shooterId);
+        // Broadcast hit (only in multiplayer)
+        if (!this.isSoloMode) {
+            this.supabase.broadcastHit(hitPlayerId, shooterId);
+        }
         
         this.ui.markPlayerDead(hitPlayerId);
         
-        // Track kills
-        if (shooterId === this.supabase.user.id) {
+        // Track kills (only in multiplayer or if human kills CPU)
+        if (this.isSoloMode) {
+            if (shooterId === 'human') {
+                this.myKills++;
+            }
+        } else if (shooterId === this.supabase.user?.id) {
             this.myKills++;
             this.supabase.addKill();
         }
     }
     
     onGameOver(winnerId) {
-        // End game (only host)
-        if (this.isHost) {
+        // End game (only host in multiplayer)
+        if (!this.isSoloMode && this.isHost) {
             this.supabase.endGame(winnerId);
         }
         
         const winner = this.game.players.find(p => p.id === winnerId);
-        const won = winnerId === this.supabase.user.id;
+        const localId = this.isSoloMode ? 'human' : this.supabase.user?.id;
+        const won = winnerId === localId;
         
         this.ui.showResult(won, winner?.name || 'Unknown', { kills: this.myKills });
     }
     
     playAgain() {
         this.ui.hideResult();
-        this.supabase.leaveGame();
-        this.quickMatch();
+        
+        if (this.isSoloMode) {
+            this.startSoloGame();
+        } else {
+            this.supabase.leaveGame();
+            this.quickMatch();
+        }
     }
     
     backToMenu() {
         this.ui.hideResult();
-        this.supabase.leaveGame();
+        
+        if (!this.isSoloMode) {
+            this.supabase.leaveGame();
+        }
+        
+        this.isSoloMode = false;
         this.ui.showScreen('menu');
     }
 }

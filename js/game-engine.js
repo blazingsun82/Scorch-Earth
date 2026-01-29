@@ -440,6 +440,12 @@ class ScorchGame {
         }
         
         this.draw();
+        
+        // If CPU's turn in solo mode, take turn automatically
+        const currentPlayer = this.getCurrentPlayer();
+        if (this.isSoloMode && currentPlayer?.isCPU && currentPlayer.isAlive) {
+            setTimeout(() => this.takeCPUTurn(), 500);
+        }
     }
     
     // Update turn state
@@ -456,6 +462,121 @@ class ScorchGame {
     // Get current player
     getCurrentPlayer() {
         return this.players[this.currentTurnIndex];
+    }
+    
+    // Initialize solo game vs CPU
+    initSoloGame(playerName, numCPU = 1) {
+        // Create player
+        const players = [{
+            player_id: 'human',
+            scorch_players: { display_name: playerName }
+        }];
+        
+        // Add CPU opponents
+        for (let i = 0; i < numCPU; i++) {
+            players.push({
+                player_id: `cpu_${i + 1}`,
+                scorch_players: { display_name: `CPU ${i + 1}` },
+                isCPU: true
+            });
+        }
+        
+        this.isSoloMode = true;
+        const terrainSeed = Math.floor(Math.random() * 100000);
+        
+        this.initGame(players, 'human', terrainSeed);
+        
+        // Mark CPU players
+        for (let i = 1; i < this.players.length; i++) {
+            this.players[i].isCPU = true;
+        }
+    }
+    
+    // CPU AI turn
+    takeCPUTurn() {
+        const cpu = this.getCurrentPlayer();
+        if (!cpu || !cpu.isCPU || !cpu.isAlive) return;
+        
+        // Find target (closest alive enemy)
+        const target = this.findCPUTarget(cpu);
+        if (!target) return;
+        
+        // Calculate ideal shot
+        const { angle, power } = this.calculateCPUShot(cpu, target);
+        
+        // Add some variance to make it imperfect
+        const finalAngle = angle + (Math.random() - 0.5) * CONFIG.CPU_AIM_VARIANCE * 2;
+        const finalPower = power + (Math.random() - 0.5) * CONFIG.CPU_POWER_VARIANCE * 2;
+        
+        // Clamp values
+        const clampedAngle = Math.max(10, Math.min(170, finalAngle));
+        const clampedPower = Math.max(20, Math.min(150, finalPower));
+        
+        // Update CPU's values for display
+        cpu.angle = clampedAngle;
+        cpu.power = clampedPower;
+        this.draw();
+        
+        // Fire after "thinking"
+        setTimeout(() => {
+            if (this.state === 'playing') {
+                this.fire(cpu.id, clampedAngle, clampedPower);
+            }
+        }, CONFIG.CPU_THINK_TIME);
+    }
+    
+    // Find best target for CPU
+    findCPUTarget(cpu) {
+        let closest = null;
+        let closestDist = Infinity;
+        
+        for (const player of this.players) {
+            if (player.id === cpu.id || !player.isAlive) continue;
+            
+            const dist = Math.abs(player.x - cpu.x);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closest = player;
+            }
+        }
+        
+        return closest;
+    }
+    
+    // Calculate shot to hit target
+    calculateCPUShot(cpu, target) {
+        const dx = target.x - cpu.x;
+        const dy = target.y - cpu.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        // Simplified ballistic calculation
+        // For artillery, we need to account for gravity
+        // Using a simple approximation
+        
+        let angle, power;
+        
+        if (dx < 0) {
+            // Target is to the left
+            angle = 135 + Math.random() * 20 - 10;
+        } else {
+            // Target is to the right
+            angle = 45 + Math.random() * 20 - 10;
+        }
+        
+        // Power based on distance
+        power = Math.min(150, Math.max(40, dist * 0.4 + 30));
+        
+        // Adjust for height difference
+        if (dy < -30) {
+            // Target is higher
+            power += 10;
+            angle = angle < 90 ? angle - 10 : angle + 10;
+        } else if (dy > 30) {
+            // Target is lower
+            power -= 5;
+        }
+        
+        return { angle, power };
     }
 }
 
