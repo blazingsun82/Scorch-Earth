@@ -1,53 +1,142 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<title>Scorch Clone</title>
-	<link rel="stylesheet" type="text/css" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Scorch Online</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="canvas-container">
-	<canvas id="background" width="1002px" height="625px"></canvas>
-	<canvas id="game-board" width="1000px" height="625px"></canvas>
-	<div class="modal">
-		<div id="modal-inner">
-		</div>
-	</div>
-</div>
-<div class="info-container">
-	<div id="turn"></div>
-	<div id="power"></div>
-	<div id="angle"></div>
-</div>
+    <!-- Menu Screen -->
+    <div id="menu-screen" class="screen active">
+        <div class="menu-content">
+            <h1 class="game-title">SCORCH<span class="title-accent">ONLINE</span></h1>
+            <p class="subtitle">Artillery Battle Royale</p>
+            
+            <div class="name-input">
+                <label for="player-name">CALL SIGN</label>
+                <input type="text" id="player-name" maxlength="12" placeholder="ENTER NAME" autocomplete="off">
+            </div>
+            
+            <div class="menu-buttons">
+                <button id="btn-quick-match" class="btn btn-primary">QUICK MATCH</button>
+                <button id="btn-private" class="btn btn-secondary">PRIVATE GAME</button>
+                <button id="btn-leaderboard" class="btn btn-tertiary">LEADERBOARD</button>
+            </div>
+            
+            <div id="queue-status" class="queue-status hidden">
+                <span>🎮 Players waiting...</span>
+            </div>
+            
+            <div id="searching-status" class="searching hidden">
+                <div class="spinner"></div>
+                <span>Finding match...</span>
+                <button id="btn-cancel" class="btn btn-small">CANCEL</button>
+            </div>
+        </div>
+        
+        <footer class="credits">
+            Based on Scorched Earth • MIT License
+        </footer>
+    </div>
+    
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="screen">
+        <div class="lobby-content">
+            <h2>GAME LOBBY</h2>
+            <div id="lobby-code" class="lobby-code"></div>
+            
+            <div class="players-list">
+                <h3>PLAYERS</h3>
+                <div id="lobby-players"></div>
+            </div>
+            
+            <div class="lobby-settings">
+                <label>
+                    <span>Players:</span>
+                    <select id="max-players">
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4" selected>4</option>
+                    </select>
+                </label>
+            </div>
+            
+            <div class="lobby-buttons">
+                <button id="btn-start-game" class="btn btn-primary" disabled>START GAME</button>
+                <button id="btn-leave-lobby" class="btn btn-secondary">LEAVE</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaderboard Screen -->
+    <div id="leaderboard-screen" class="screen">
+        <div class="leaderboard-content">
+            <h2>LEADERBOARD</h2>
+            <div class="leaderboard-tabs">
+                <button class="tab active" data-tab="wins">TOP WINS</button>
+                <button class="tab" data-tab="kills">TOP KILLS</button>
+            </div>
+            <div id="leaderboard-list" class="leaderboard-list"></div>
+            <button id="btn-back" class="btn btn-secondary">BACK</button>
+        </div>
+    </div>
+    
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <div class="game-hud">
+            <div id="players-hud" class="players-hud"></div>
+            <div class="turn-indicator">
+                <span id="turn-text">Waiting...</span>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="background"></canvas>
+            <canvas id="game-canvas"></canvas>
+        </div>
+        
+        <div class="controls-panel">
+            <div class="control-group">
+                <label>ANGLE</label>
+                <div class="slider-container">
+                    <input type="range" id="angle-slider" min="10" max="170" value="90">
+                    <span id="angle-value">90°</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>POWER</label>
+                <div class="slider-container">
+                    <input type="range" id="power-slider" min="20" max="150" value="80">
+                    <span id="power-value">80</span>
+                </div>
+            </div>
+            <button id="btn-fire" class="btn btn-fire" disabled>FIRE!</button>
+        </div>
+    </div>
+    
+    <!-- Result Overlay -->
+    <div id="result-overlay" class="overlay hidden">
+        <div class="result-content">
+            <h2 id="result-title">VICTORY!</h2>
+            <p id="result-message"></p>
+            <div id="result-stats" class="result-stats"></div>
+            <div class="result-buttons">
+                <button id="btn-play-again" class="btn btn-primary">PLAY AGAIN</button>
+                <button id="btn-to-menu" class="btn btn-secondary">MENU</button>
+            </div>
+        </div>
+    </div>
 
-<div id="button-container">
-	<button id="2players">Two Players</button>
-	<button id="3players">Three Players</button>
-	<button id="4players">Four Players</button>
-</div>
-
-
-<p>angle your cannon using the left and right arrow keys </br>
-adjust the power of your cannon using the up and down arrows </br>
-press spacebar to fire your cannon </br>
-the last tank remaining wins</p>
-
-
-
-
-
-<!-- <script src="https://www.gstatic.com/firebasejs/4.8.1/firebase.js"></script>
-<script>
-  // Initialize Firebase
-  var config = {
-    apiKey: "AIzaSyDU9hXDmC6zsu0Yfixda6Q-MbU16IZxCX0",
-    authDomain: "scorchclone.firebaseapp.com",
-    databaseURL: "https://scorchclone.firebaseio.com",
-    projectId: "scorchclone",
-    storageBucket: "",
-    messagingSenderId: "863728834674"
-  };
-  firebase.initializeApp(config);
-</script> -->
-<script type="text/javascript" src="js/app.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/game-engine.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
