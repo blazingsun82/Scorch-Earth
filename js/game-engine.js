@@ -466,6 +466,8 @@ class ScorchGame {
     
     // Initialize solo game vs CPU
     initSoloGame(playerName, numCPU = 1) {
+        console.log('initSoloGame called:', playerName, numCPU);
+        
         // Create player
         const players = [{
             player_id: 'human',
@@ -481,15 +483,21 @@ class ScorchGame {
             });
         }
         
+        console.log('Players created:', players);
+        
         this.isSoloMode = true;
+        this.localPlayerId = 'human';
         const terrainSeed = Math.floor(Math.random() * 100000);
         
+        console.log('Calling initGame with seed:', terrainSeed);
         this.initGame(players, 'human', terrainSeed);
         
         // Mark CPU players
         for (let i = 1; i < this.players.length; i++) {
             this.players[i].isCPU = true;
         }
+        
+        console.log('Solo game initialized, players:', this.players);
     }
     
     // CPU AI turn

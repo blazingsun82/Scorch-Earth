@@ -13,7 +13,6 @@ class UIManager {
         // Menu elements
         this.playerNameInput = document.getElementById('player-name');
         this.btnSolo = document.getElementById('btn-solo');
-        this.btnQuickMatch = document.getElementById('btn-quick-match');
         this.btnPrivate = document.getElementById('btn-private');
         this.btnLeaderboard = document.getElementById('btn-leaderboard');
         this.queueStatus = document.getElementById('queue-status');
