@@ -13,8 +13,11 @@ class ScorchOnline {
     }
     
     async init() {
+        console.log('Initializing Scorch Online...');
+        
         // Initialize UI
         this.ui = new UIManager();
+        console.log('UI initialized');
         
         // Initialize Supabase
         this.supabase = new SupabaseClient();
@@ -24,11 +27,15 @@ class ScorchOnline {
         if (!connected) {
             console.warn('Running in offline mode');
         }
+        console.log('Supabase initialized, connected:', connected);
         
         // Initialize game engine
         const canvas = document.getElementById('game-canvas');
         const bgCanvas = document.getElementById('background');
+        console.log('Canvas:', canvas, 'bgCanvas:', bgCanvas);
+        
         this.game = new ScorchGame(canvas, bgCanvas);
+        console.log('Game engine initialized');
         
         // Bind events
         this.bindEvents();
@@ -45,14 +52,29 @@ class ScorchOnline {
     }
     
     bindEvents() {
+        console.log('Binding events...');
+        console.log('btnSolo:', this.ui.btnSolo);
+        console.log('btnPrivate:', this.ui.btnPrivate);
+        
         // Solo vs CPU
-        this.ui.btnSolo.addEventListener('click', () => this.startSoloGame());
+        if (this.ui.btnSolo) {
+            this.ui.btnSolo.addEventListener('click', () => {
+                console.log('Solo button clicked!');
+                this.startSoloGame();
+            });
+        } else {
+            console.error('btnSolo not found!');
+        }
         
-        // Quick match
-        this.ui.btnQuickMatch.addEventListener('click', () => this.quickMatch());
-        
-        // Private game
-        this.ui.btnPrivate.addEventListener('click', () => this.createPrivateGame());
+        // Multiplayer game
+        if (this.ui.btnPrivate) {
+            this.ui.btnPrivate.addEventListener('click', () => {
+                console.log('Multiplayer button clicked!');
+                this.createMultiplayerGame();
+            });
+        } else {
+            console.error('btnPrivate not found!');
+        }
         
         // Leaderboard
         this.ui.btnLeaderboard.addEventListener('click', () => {
@@ -97,46 +119,38 @@ class ScorchOnline {
     
     // Start solo game vs CPU
     startSoloGame() {
+        console.log('Starting solo game...');
         const name = this.ui.getPlayerName();
+        console.log('Player name:', name);
+        
         this.isSoloMode = true;
         this.isHost = true;
-        
-        // Initialize game
-        this.game.resize();
-        this.game.initSoloGame(name, 1); // 1 CPU opponent
-        
-        this.ui.showScreen('game');
-        this.ui.setupGameHUD(this.game.players, 'human');
-        
         this.myKills = 0;
-        this.updateTurnUI();
+        
+        // Show game screen FIRST so canvas has size
+        this.ui.showScreen('game');
+        
+        // Small delay to let screen render
+        setTimeout(() => {
+            // Now resize and init
+            this.game.resize();
+            console.log('Canvas size:', this.game.width, 'x', this.game.height);
+            
+            this.game.initSoloGame(name, 1); // 1 CPU opponent
+            console.log('Game initialized, players:', this.game.players);
+            
+            this.ui.setupGameHUD(this.game.players, 'human');
+            this.updateTurnUI();
+            console.log('Solo game started!');
+        }, 100);
     }
     
-    async quickMatch() {
-        const name = this.ui.getPlayerName();
-        await this.supabase.getOrCreatePlayer(name);
-        
-        this.ui.showSearching(true);
-        
-        const result = await this.supabase.joinQueue();
-        
-        this.ui.showSearching(false);
-        
-        if (!result) {
-            alert('Failed to find match. Try again!');
-            return;
-        }
-        
-        this.isHost = result.type === 'created';
-        this.setupLobby(result.game);
-    }
-    
-    async createPrivateGame() {
+    async createMultiplayerGame() {
         const name = this.ui.getPlayerName();
         await this.supabase.getOrCreatePlayer(name);
         
         const maxPlayers = parseInt(this.ui.maxPlayersSelect.value);
-        const result = await this.supabase.createGame(true, maxPlayers);
+        const result = await this.supabase.createGame(false, maxPlayers);
         
         if (!result) {
             alert('Failed to create game. Try again!');
@@ -339,7 +353,7 @@ class ScorchOnline {
             this.startSoloGame();
         } else {
             this.supabase.leaveGame();
-            this.quickMatch();
+            this.createMultiplayerGame();
         }
     }
     
